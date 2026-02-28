@@ -28,34 +28,14 @@ const labSolutionSchema = {
                         type: Type.STRING,
                         description: "Brief description of what this task accomplishes",
                     },
-                    steps: {
-                        type: Type.ARRAY,
-                        items: {
-                            type: Type.OBJECT,
-                            properties: {
-                                instruction: {
-                                    type: Type.STRING,
-                                    description: "Clear instruction for this step",
-                                },
-                                command: {
-                                    type: Type.STRING,
-                                    description:
-                                        "Shell command to run (if applicable). Use placeholder variables like $PROJECT_ID, $REGION instead of hardcoded values",
-                                },
-                                note: {
-                                    type: Type.STRING,
-                                    description:
-                                        "Additional tip, warning, or explanation for this step",
-                                },
-                            },
-                            required: ["instruction"],
-                        },
-                        description: "Ordered steps to complete the task",
-                    },
+                    script: {
+                        type: Type.STRING,
+                        description: "A single, complete, executable bash script containing all gcloud/gsutil/bq commands needed to complete the entire task without any manual UI interaction. Include comments to explain what each section of the script does. Use placeholder variables like <PROJECT_ID> instead of hardcoded values.",
+                    }
                 },
-                required: ["id", "title", "description", "steps"],
+                required: ["id", "title", "description", "script"],
             },
-            description: "Array of lab tasks with their solutions",
+            description: "Array of lab tasks with their bash script solutions",
         },
     },
     required: ["labTitle", "tasks"],
@@ -71,55 +51,37 @@ export async function POST(req: NextRequest) {
 
         if (pastedContent) {
             contextText = pastedContent;
-        } else {
-            contextText = `Lab Title: ${labTitle}\n\n`;
-            if (rawTasks && rawTasks.length > 0) {
-                contextText += "Lab Tasks/Sections:\n";
-                rawTasks.forEach(
-                    (task: { title: string; content: string }, i: number) => {
-                        contextText += `\n--- Task ${i + 1}: ${task.title} ---\n${task.content}\n`;
-                    }
-                );
-            }
-            if (codeSnippets && codeSnippets.length > 0) {
-                contextText += "\n\nCode snippets found in the lab:\n";
-                codeSnippets.forEach((code: string, i: number) => {
-                    contextText += `\nSnippet ${i + 1}:\n${code}\n`;
-                });
-            }
         }
 
-        const prompt = `You are a strict and precise technical parser. Analyze the following cloud lab content and convert it into a faithful, step-by-step JSON checklist.
+        const prompt = `You are an expert Google Cloud engineer and automation specialist. Analyze the following Google Cloud Skills Boost lab instructions and convert every manual UI step into its equivalent gcloud, bq, or gsutil command.
 
-Lab Solution Formatting Rules:
+Lab Scripting Rules:
 
-1. Faithfulness & UI Details
-   - Preserve the exact task order and step order as the original lab instructions.
-   - Do not drop required steps or invent new mandatory ones.
-   - For UI navigation steps, elaborate slightly to help beginners (e.g., instead of "Create a dataset", write "Click the three dots next to your project ID → Create dataset") to match the literal lab intent without losing clarity.
+1. One Script Per Task
+   - Completely ignore the manual UI instructions (e.g., "Click Navigation menu", "Go to IAM & Admin").
+   - Instead, translate those exact goals into the equivalent CLI commands.
+   - Combine all the CLI commands needed to pass a specific "Task" into a single, cohesive bash script block.
+   
+2. CLI Equivalents
+   - If a lab asks the user to create a bucket in the UI, give the \`gsutil mb\` command.
+   - If a lab asks to create a firewall rule in the UI, give the \`gcloud compute firewall-rules create\` command.
+   - You MUST figure out the CLI equivalents for ALL UI interactions.
 
-2. Step structure
-   - Every actionable instruction becomes a distinct step object.
-   - Keep each step atomic (one real action per step).
-   - Group purely informational text (notes, descriptions) under the nearest step using the "note" field.
+3. Script Formatting & Comments
+   - Format the script as a valid, executable bash script.
+   - Include helpful comments (starting with #) inside the script to explain to the user what the block of commands is doing.
+   - Group related commands together logically.
 
-3. Commands and CLI (Strict Usage)
-   - Only use the "command" field for ACTUAL executable shell commands (e.g., gcloud, bq, gsutil).
-   - Do NOT put plain text, connection IDs (like 'my-connection'), or arbitrary values in the "command" field. Put those in the instruction or note.
-   - Do NOT introduce new hidden commands that change what the lab grader expects.
-   - When adding verification CLI commands that require connection IDs, maintain consistent region formatting (e.g., always use $PROJECT_ID.US.<connection_name> if it's a US multi-region lab).
+4. Identifiers & Variables
+   - Never hard-code real project IDs, generic emails, or specific bucket names.
+   - Use standard placeholders like <PROJECT_ID>, <YOUR_BUCKET_NAME>, <REGION>, <ZONE>.
+   - If the user needs to export variables before running the commands, put the \`export VAR_NAME=value\` block at the very top of the script with placeholder values.
 
-4. Identifiers and safety
-   - Never hard-code real project IDs, emails, or bucket names; use placeholders like <PROJECT_ID>, <BUCKET_NAME>, <REGION>.
-   - If the lab text contains a specific ID you must copy (e.g., a service account ID to paste later), create a distinct step for it.
-
-5. No grading logic
-   - Do not discuss how the lab is graded or how to "hack" the score; just reflect the documented steps.
+5. Formatting
+   - Generate the structured JSON response strictly following these rules.
 
 Lab Content:
-${contextText}
-
-Generate the structured JSON response strictly following these rules.`;
+${contextText}`;
 
         const response = await ai.models.generateContent({
             model: "gemini-3-flash-preview",

@@ -1,14 +1,8 @@
-export interface LabStep {
-    instruction: string;
-    command?: string;
-    note?: string;
-}
-
 export interface LabTask {
     id: string;
     title: string;
     description: string;
-    steps: LabStep[];
+    script: string;
 }
 
 export interface LabData {

@@ -2,12 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { UserButton, useUser } from "@clerk/nextjs";
-import { LabData, LabHistoryItem, LabStep, LabTask } from "@/lib/types";
-
-// ─── HELPER: generate step ID ─────────────────────
-function stepId(taskId: string, stepIndex: number) {
-    return `${taskId}-step-${stepIndex}`;
-}
+import { LabData, LabHistoryItem, LabTask } from "@/lib/types";
 
 // ─── HELPER: localStorage ─────────────────────────
 function loadHistory(): LabHistoryItem[] {
@@ -24,7 +19,7 @@ function saveHistory(items: LabHistoryItem[]) {
 }
 
 // ─── HELPER: Markdown export ──────────────────────
-function exportToMarkdown(lab: LabData, completedSteps: string[]): string {
+function exportToMarkdown(lab: LabData): string {
     let md = `# ${lab.labTitle}\n\n`;
     if (lab.labDescription) md += `${lab.labDescription}\n\n`;
     md += `---\n\n`;
@@ -32,14 +27,8 @@ function exportToMarkdown(lab: LabData, completedSteps: string[]): string {
     lab.tasks.forEach((task, ti) => {
         md += `## ${ti + 1}. ${task.title}\n\n`;
         md += `${task.description}\n\n`;
-        task.steps.forEach((step, si) => {
-            const sid = stepId(task.id, si);
-            const check = completedSteps.includes(sid) ? "x" : " ";
-            md += `- [${check}] ${step.instruction}\n`;
-            if (step.command) md += `  \`\`\`bash\n  ${step.command}\n  \`\`\`\n`;
-            if (step.note) md += `  > 💡 ${step.note}\n`;
-            md += `\n`;
-        });
+        md += `### Cloud Shell Automation Script\n`;
+        md += `\`\`\`bash\n${task.script}\n\`\`\`\n\n`;
     });
 
     return md;
@@ -53,8 +42,6 @@ export default function DashboardPage() {
     const [completedSteps, setCompletedSteps] = useState<string[]>([]);
 
     // Input state
-    const [url, setUrl] = useState("");
-    const [pasteMode, setPasteMode] = useState(false);
     const [pastedContent, setPastedContent] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [loadingStatus, setLoadingStatus] = useState("");
@@ -70,39 +57,6 @@ export default function DashboardPage() {
 
     const activeLab = history.find((h) => h.id === activeLabId);
 
-    // Count total steps
-    const totalSteps =
-        activeLab?.data.tasks.reduce((sum, t) => sum + t.steps.length, 0) || 0;
-    const completedCount = completedSteps.length;
-    const progressPercent = totalSteps > 0 ? (completedCount / totalSteps) * 100 : 0;
-
-    // Toggle step completion
-    const toggleStep = useCallback(
-        (sid: string) => {
-            setCompletedSteps((prev) => {
-                const next = prev.includes(sid)
-                    ? prev.filter((s) => s !== sid)
-                    : [...prev, sid];
-
-                // Also save to history
-                if (activeLabId) {
-                    setHistory((h) => {
-                        const updated = h.map((item) =>
-                            item.id === activeLabId
-                                ? { ...item, completedSteps: next }
-                                : item
-                        );
-                        saveHistory(updated);
-                        return updated;
-                    });
-                }
-
-                return next;
-            });
-        },
-        [activeLabId]
-    );
-
     // Copy command
     const copyCommand = useCallback((command: string, id: string) => {
         navigator.clipboard.writeText(command);
@@ -113,8 +67,6 @@ export default function DashboardPage() {
     // Select a lab from history
     const selectLab = useCallback((id: string) => {
         setActiveLabId(id);
-        const lab = loadHistory().find((h) => h.id === id);
-        setCompletedSteps(lab?.completedSteps || []);
         setError("");
     }, []);
 
@@ -122,59 +74,29 @@ export default function DashboardPage() {
     const newLab = useCallback(() => {
         setActiveLabId(null);
         setCompletedSteps([]);
-        setUrl("");
         setPastedContent("");
         setError("");
-        setPasteMode(false);
     }, []);
 
-    // Submit lab URL or pasted content
+    // Submit pasted content
     const handleSubmit = useCallback(async () => {
-        if (!url.trim() && !pastedContent.trim()) return;
+        if (!pastedContent.trim()) return;
 
         setIsLoading(true);
         setError("");
 
         try {
-            let scrapeResult;
+            setLoadingStatus("🤖 Analyzing lab content with AI...");
 
-            if (pasteMode && pastedContent.trim()) {
-                // Skip scraping, send content directly to solve
-                setLoadingStatus("🤖 Analyzing lab content with AI...");
-                scrapeResult = {
-                    labTitle: "Pasted Lab",
-                    labDescription: "",
-                    rawTasks: [],
-                    codeSnippets: [],
-                    scrapedSuccessfully: false,
-                };
-            } else {
-                // Step 1: Scrape
-                setLoadingStatus("🔍 Scraping lab page...");
-                const scrapeRes = await fetch("/api/scrape", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ url: url.trim() }),
-                });
-                scrapeResult = await scrapeRes.json();
-
-                if (scrapeResult.error) {
-                    setError(scrapeResult.error);
-                    setIsLoading(false);
-                    return;
-                }
-            }
-
-            // Step 2: Send to AI
-            setLoadingStatus("🤖 Generating solutions with Gemini AI...");
+            // Send content directly to solve API
             const solveRes = await fetch("/api/solve", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    labTitle: scrapeResult.labTitle,
-                    rawTasks: scrapeResult.rawTasks,
-                    codeSnippets: scrapeResult.codeSnippets,
-                    pastedContent: pasteMode ? pastedContent.trim() : undefined,
+                    labTitle: "Pasted Lab",
+                    rawTasks: [],
+                    codeSnippets: [],
+                    pastedContent: pastedContent.trim(),
                 }),
             });
 
@@ -189,8 +111,7 @@ export default function DashboardPage() {
             // Step 3: Save to history
             const newItem: LabHistoryItem = {
                 id: Date.now().toString(),
-                title: solveResult.labTitle || scrapeResult.labTitle || "Untitled Lab",
-                url: pasteMode ? undefined : url.trim(),
+                title: solveResult.labTitle || "Untitled Lab",
                 createdAt: new Date().toISOString(),
                 data: solveResult,
                 completedSteps: [],
@@ -201,7 +122,6 @@ export default function DashboardPage() {
             saveHistory(updatedHistory);
             setActiveLabId(newItem.id);
             setCompletedSteps([]);
-            setUrl("");
             setPastedContent("");
         } catch (err) {
             console.error(err);
@@ -210,12 +130,12 @@ export default function DashboardPage() {
             setIsLoading(false);
             setLoadingStatus("");
         }
-    }, [url, pastedContent, pasteMode, history]);
+    }, [pastedContent, history]);
 
     // Export markdown
     const handleExport = useCallback(() => {
         if (!activeLab) return;
-        const md = exportToMarkdown(activeLab.data, completedSteps);
+        const md = exportToMarkdown(activeLab.data);
         const blob = new Blob([md], { type: "text/markdown" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -262,7 +182,7 @@ export default function DashboardPage() {
                     <div className="sidebar-empty">
                         <div className="sidebar-empty-icon">📋</div>
                         <span>No labs yet</span>
-                        <span>Paste a URL to get started</span>
+                        <span>Paste lab instructions to get started</span>
                     </div>
                 ) : (
                     <div className="sidebar-labs">
@@ -340,104 +260,40 @@ export default function DashboardPage() {
                         <div className="welcome">
                             <div className="welcome-icon">✨</div>
                             <h2 className="welcome-title">
-                                What lab are you working on?
+                                Paste Your Lab Instructions
                             </h2>
-                            <p className="welcome-subtitle">
-                                Paste a Google Cloud Skills Boost lab URL and I&apos;ll generate
-                                a step-by-step solution with real commands.
+                            <p className="welcome-subtitle" style={{ marginBottom: "20px" }}>
+                                Hit <strong>Ctrl+A</strong> and <strong>Ctrl+C</strong> on your Google Cloud Skills Boost lab page, and paste the entire text below.
                             </p>
 
-                            <div className="url-input-wrapper">
-                                <div className="url-input-container">
-                                    <input
-                                        className="url-input"
-                                        type="text"
-                                        placeholder="https://www.cloudskillsboost.google/focuses/..."
-                                        value={url}
-                                        onChange={(e) => setUrl(e.target.value)}
-                                        onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-                                        disabled={pasteMode}
-                                    />
-                                    <button
-                                        className="url-submit-btn"
-                                        onClick={handleSubmit}
-                                        disabled={
-                                            pasteMode
-                                                ? !pastedContent.trim()
-                                                : !url.trim()
-                                        }
-                                    >
-                                        🚀 Solve Lab
-                                    </button>
-                                </div>
-                                <p className="url-hint">
-                                    Supports Google Cloud Skills Boost, Qwiklabs, and similar lab
-                                    platforms
-                                </p>
+                            <div className="paste-area" style={{ marginBottom: "20px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                                <textarea
+                                    className="paste-textarea"
+                                    placeholder="Paste your lab instructions here...&#10;&#10;Example:&#10;Task 1: Create a Cloud Storage bucket&#10;1. Open Cloud Shell&#10;2. Run: gsutil mb gs://my-bucket&#10;..."
+                                    style={{ minHeight: "300px", padding: "16px", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--card-bg)", color: "var(--text)" }}
+                                    value={pastedContent}
+                                    onChange={(e) => setPastedContent(e.target.value)}
+                                />
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={handleSubmit}
+                                    disabled={!pastedContent.trim()}
+                                    style={{ alignSelf: "flex-end", padding: "12px 24px", fontSize: "1rem" }}
+                                >
+                                    🚀 Solve Lab
+                                </button>
                             </div>
-
-                            <div className="or-divider">or</div>
-
-                            <button
-                                className="paste-toggle"
-                                onClick={() => setPasteMode(!pasteMode)}
-                            >
-                                {pasteMode
-                                    ? "← Switch to URL mode"
-                                    : "📋 Paste lab instructions manually"}
-                            </button>
-
-                            {pasteMode && (
-                                <div className="paste-area">
-                                    <textarea
-                                        className="paste-textarea"
-                                        placeholder="Paste your lab instructions here...&#10;&#10;Example:&#10;Task 1: Create a Cloud Storage bucket&#10;1. Open Cloud Shell&#10;2. Run: gsutil mb gs://my-bucket&#10;..."
-                                        value={pastedContent}
-                                        onChange={(e) => setPastedContent(e.target.value)}
-                                    />
-                                </div>
-                            )}
                         </div>
                     )}
 
                     {/* ─── CHECKLIST VIEW ─── */}
                     {activeLab && !isLoading && (
                         <div className="checklist-container">
-                            <div className="checklist-header">
+                            <div className="checklist-header" style={{ marginBottom: "2rem" }}>
                                 <div className="checklist-meta">
                                     <span className="checklist-meta-item">
-                                        📋 {activeLab.data.tasks.length} tasks
+                                        📋 {activeLab.data.tasks.length} script blocks
                                     </span>
-                                    <span className="checklist-meta-item">
-                                        🔧 {totalSteps} steps
-                                    </span>
-                                    {activeLab.url && (
-                                        <a
-                                            href={activeLab.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="checklist-meta-item"
-                                            style={{ color: "var(--primary)" }}
-                                        >
-                                            🔗 Open Lab
-                                        </a>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Progress bar */}
-                            <div className="progress-bar-wrapper">
-                                <div className="progress-info">
-                                    <span className="progress-label">Progress</span>
-                                    <span className="progress-count">
-                                        {completedCount} / {totalSteps} steps
-                                    </span>
-                                </div>
-                                <div className="progress-track">
-                                    <div
-                                        className="progress-fill"
-                                        style={{ width: `${progressPercent}%` }}
-                                    />
                                 </div>
                             </div>
 
@@ -464,61 +320,31 @@ export default function DashboardPage() {
                                         </p>
                                     )}
 
-                                    {task.steps.map((step: LabStep, si: number) => {
-                                        const sid = stepId(task.id, si);
-                                        const isCompleted = completedSteps.includes(sid);
-                                        const cmdId = `cmd-${task.id}-${si}`;
-
-                                        return (
+                                    {task.script && (
+                                        <div className="glass-card" style={{ padding: "0" }}>
                                             <div
-                                                key={sid}
-                                                className={`glass-card step-card ${isCompleted ? "completed" : ""}`}
-                                                onClick={() => toggleStep(sid)}
+                                                className="command-block"
+                                                style={{ border: "none", margin: "0" }}
                                             >
-                                                <div
-                                                    className={`step-checkbox ${isCompleted ? "checked" : ""}`}
-                                                >
-                                                    {isCompleted && "✓"}
+                                                <div className="command-header">
+                                                    <span>cloud-shell.sh</span>
+                                                    <button
+                                                        className={`command-copy-btn ${copiedId === task.id ? "copied" : ""}`}
+                                                        onClick={() =>
+                                                            copyCommand(task.script, task.id)
+                                                        }
+                                                    >
+                                                        {copiedId === task.id
+                                                            ? "✓ Copied!"
+                                                            : "📋 Copy Script"}
+                                                    </button>
                                                 </div>
-                                                <div className="step-content">
-                                                    <p className="step-instruction">
-                                                        {step.instruction}
-                                                    </p>
-
-                                                    {step.command && (
-                                                        <div
-                                                            className="command-block"
-                                                            onClick={(e) => e.stopPropagation()}
-                                                        >
-                                                            <div className="command-header">
-                                                                <span>terminal</span>
-                                                                <button
-                                                                    className={`command-copy-btn ${copiedId === cmdId ? "copied" : ""}`}
-                                                                    onClick={() =>
-                                                                        copyCommand(step.command!, cmdId)
-                                                                    }
-                                                                >
-                                                                    {copiedId === cmdId
-                                                                        ? "✓ Copied!"
-                                                                        : "📋 Copy"}
-                                                                </button>
-                                                            </div>
-                                                            <div className="command-code">
-                                                                {step.command}
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {step.note && (
-                                                        <div className="step-note">
-                                                            <div className="step-note-label">💡 Tip</div>
-                                                            {step.note}
-                                                        </div>
-                                                    )}
+                                                <div className="command-code" style={{ whiteSpace: "pre-wrap" }}>
+                                                    {task.script}
                                                 </div>
                                             </div>
-                                        );
-                                    })}
+                                        </div>
+                                    )}
                                 </div>
                             ))}
 
