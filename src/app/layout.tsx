@@ -45,7 +45,7 @@ export default function RootLayout({
         },
       }}
     >
-      <html lang="en">
+      <html lang="en" suppressHydrationWarning>
         <body suppressHydrationWarning>{children}</body>
       </html>
     </ClerkProvider>

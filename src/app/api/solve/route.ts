@@ -89,26 +89,37 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        const prompt = `You are an expert Google Cloud Platform instructor. Analyze the following cloud lab content and generate a complete, detailed solution guide.
+        const prompt = `You are a strict and precise technical parser. Analyze the following cloud lab content and convert it into a faithful, step-by-step JSON checklist.
 
-For each task/section in the lab, provide:
-1. A clear title and description
-2. Step-by-step instructions with actual GCP commands (gcloud, gsutil, bq, kubectl, etc.)
-3. Use placeholder variables like $PROJECT_ID, $REGION, $ZONE instead of hardcoded values
-4. Add helpful notes/tips where relevant (common pitfalls, best practices, what to verify)
+Lab Solution Formatting Rules:
 
-IMPORTANT RULES:
-- Generate REAL, working GCP commands — not pseudocode
-- Include commands to set the project: gcloud config set project $PROJECT_ID
-- Include region/zone configuration where needed
-- Add verification steps (e.g., "Run this command to verify the resource was created")
-- If a task involves the Cloud Console UI, describe the exact navigation path
-- Break complex tasks into small, clear steps
+1. Faithfulness & UI Details
+   - Preserve the exact task order and step order as the original lab instructions.
+   - Do not drop required steps or invent new mandatory ones.
+   - For UI navigation steps, elaborate slightly to help beginners (e.g., instead of "Create a dataset", write "Click the three dots next to your project ID → Create dataset") to match the literal lab intent without losing clarity.
+
+2. Step structure
+   - Every actionable instruction becomes a distinct step object.
+   - Keep each step atomic (one real action per step).
+   - Group purely informational text (notes, descriptions) under the nearest step using the "note" field.
+
+3. Commands and CLI (Strict Usage)
+   - Only use the "command" field for ACTUAL executable shell commands (e.g., gcloud, bq, gsutil).
+   - Do NOT put plain text, connection IDs (like 'my-connection'), or arbitrary values in the "command" field. Put those in the instruction or note.
+   - Do NOT introduce new hidden commands that change what the lab grader expects.
+   - When adding verification CLI commands that require connection IDs, maintain consistent region formatting (e.g., always use $PROJECT_ID.US.<connection_name> if it's a US multi-region lab).
+
+4. Identifiers and safety
+   - Never hard-code real project IDs, emails, or bucket names; use placeholders like <PROJECT_ID>, <BUCKET_NAME>, <REGION>.
+   - If the lab text contains a specific ID you must copy (e.g., a service account ID to paste later), create a distinct step for it.
+
+5. No grading logic
+   - Do not discuss how the lab is graded or how to "hack" the score; just reflect the documented steps.
 
 Lab Content:
 ${contextText}
 
-Generate a comprehensive solution with all tasks and their detailed steps.`;
+Generate the structured JSON response strictly following these rules.`;
 
         const response = await ai.models.generateContent({
             model: "gemini-3-flash-preview",
