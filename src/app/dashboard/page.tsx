@@ -118,26 +118,44 @@ export default function DashboardPage() {
                 return;
             }
 
-            // Step 3: Save to Database API Instead of localStorage
-            const saveRes = await fetch("/api/history", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(solveResult),
-            });
+            // Step 3: Try to save to Database, but show results regardless
+            let newItem: LabHistoryItem;
 
-            const savedLab = await saveRes.json();
+            try {
+                const saveRes = await fetch("/api/history", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(solveResult),
+                });
 
-            if (savedLab.error) {
-                throw new Error(savedLab.error);
+                const savedLab = await saveRes.json();
+
+                if (savedLab.error) {
+                    throw new Error(savedLab.error);
+                }
+
+                newItem = {
+                    id: savedLab.id,
+                    title: savedLab.title,
+                    createdAt: savedLab.date,
+                    data: savedLab.data,
+                    completedSteps: [],
+                };
+            } catch (saveErr) {
+                // Database save failed (e.g. Supabase paused), but still show results
+                console.warn("Could not save to history (database may be unreachable):", saveErr);
+                newItem = {
+                    id: `local-${Date.now()}`,
+                    title: solveResult.labTitle || "Pasted Lab",
+                    createdAt: new Date().toISOString(),
+                    data: {
+                        labTitle: solveResult.labTitle || "Pasted Lab",
+                        labDescription: "",
+                        tasks: solveResult.tasks || [],
+                    },
+                    completedSteps: [],
+                };
             }
-
-            const newItem: LabHistoryItem = {
-                id: savedLab.id,
-                title: savedLab.title,
-                createdAt: savedLab.date,
-                data: savedLab.data,
-                completedSteps: [],
-            };
 
             setHistory(prev => [newItem, ...prev]);
             setActiveLabId(newItem.id);
