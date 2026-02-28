@@ -1,0 +1,28 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Lab {
+  id               String   @id @default(uuid())
+  userId           String   // Clerk User ID
+  labTitle         String
+  labDescription   String?
+  pastedContent    String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  tasks            Task[]
+}
+
+model Task {
+  id          String   @id @default(uuid())
+  labId       String
+  lab         Lab      @relation(fields: [labId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  script      String
+  order       Int      // Important to keep tasks in their generated order
+}

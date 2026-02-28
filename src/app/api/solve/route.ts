@@ -43,7 +43,15 @@ const labSolutionSchema = {
 
 export async function POST(req: NextRequest) {
     try {
-        const body = await req.json();
+        let body;
+        try {
+            body = await req.json();
+        } catch {
+            return NextResponse.json(
+                { error: "Invalid or empty request body. Please provide valid JSON." },
+                { status: 400 }
+            );
+        }
         const { labTitle, rawTasks, codeSnippets, pastedContent } = body;
 
         // Build the prompt

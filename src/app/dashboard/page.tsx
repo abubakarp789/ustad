@@ -4,18 +4,24 @@ import { useState, useEffect, useCallback } from "react";
 import { useUser, SignOutButton } from "@clerk/nextjs";
 import { LabData, LabHistoryItem, LabTask } from "@/lib/types";
 
-// ─── HELPER: localStorage ─────────────────────────
-function loadHistory(): LabHistoryItem[] {
-    if (typeof window === "undefined") return [];
+// ─── HELPER: API Fetching ─────────────────────────
+async function fetchHistory(): Promise<LabHistoryItem[]> {
     try {
-        return JSON.parse(localStorage.getItem("lab-buddy-history") || "[]");
-    } catch {
+        const res = await fetch("/api/history");
+        if (!res.ok) throw new Error("Failed to fetch history");
+        return await res.json();
+    } catch (error) {
+        console.error(error);
         return [];
     }
 }
 
-function saveHistory(items: LabHistoryItem[]) {
-    localStorage.setItem("lab-buddy-history", JSON.stringify(items));
+async function removeHistory(id: string): Promise<void> {
+    try {
+        await fetch(`/api/history?id=${id}`, { method: "DELETE" });
+    } catch (error) {
+        console.error(error);
+    }
 }
 
 // ─── HELPER: Markdown export ──────────────────────
@@ -52,7 +58,11 @@ export default function DashboardPage() {
 
     // Load history on mount
     useEffect(() => {
-        setHistory(loadHistory());
+        let isMounted = true;
+        fetchHistory().then((data) => {
+            if (isMounted) setHistory(data);
+        });
+        return () => { isMounted = false; };
     }, []);
 
     const activeLab = history.find((h) => h.id === activeLabId);
@@ -108,18 +118,28 @@ export default function DashboardPage() {
                 return;
             }
 
-            // Step 3: Save to history
+            // Step 3: Save to Database API Instead of localStorage
+            const saveRes = await fetch("/api/history", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(solveResult),
+            });
+
+            const savedLab = await saveRes.json();
+
+            if (savedLab.error) {
+                throw new Error(savedLab.error);
+            }
+
             const newItem: LabHistoryItem = {
-                id: Date.now().toString(),
-                title: solveResult.labTitle || "Untitled Lab",
-                createdAt: new Date().toISOString(),
-                data: solveResult,
+                id: savedLab.id,
+                title: savedLab.title,
+                createdAt: savedLab.date,
+                data: savedLab.data,
                 completedSteps: [],
             };
 
-            const updatedHistory = [newItem, ...history];
-            setHistory(updatedHistory);
-            saveHistory(updatedHistory);
+            setHistory(prev => [newItem, ...prev]);
             setActiveLabId(newItem.id);
             setCompletedSteps([]);
             setPastedContent("");
@@ -147,15 +167,19 @@ export default function DashboardPage() {
 
     // Delete lab from history
     const deleteLab = useCallback(
-        (id: string, e: React.MouseEvent) => {
+        async (id: string, e: React.MouseEvent) => {
             e.stopPropagation();
-            const updated = history.filter((h) => h.id !== id);
-            setHistory(updated);
-            saveHistory(updated);
+
+            // Remove locally first for snappy UI
+            setHistory((prev) => prev.filter((h) => h.id !== id));
+
             if (activeLabId === id) {
                 setActiveLabId(null);
                 setCompletedSteps([]);
             }
+
+            // Sync deletion with Supabase DB
+            await removeHistory(id);
         },
         [history, activeLabId]
     );
@@ -166,8 +190,8 @@ export default function DashboardPage() {
             <aside className="sidebar">
                 <div className="sidebar-header">
                     <div className="sidebar-brand">
-                        <div className="sidebar-brand-icon">✨</div>
-                        Lab Buddy
+                        <img src="/logo.png" width={24} height={24} alt="Ustad Logo" className="sidebar-brand-icon" style={{ background: 'transparent', borderRadius: '4px' }} />
+                        Ustad
                     </div>
                     <button
                         className="sidebar-new-btn"

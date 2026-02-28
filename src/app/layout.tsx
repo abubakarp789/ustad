@@ -4,9 +4,9 @@ import { dark } from "@clerk/themes";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Lab Buddy — Your Cloud Lab Companion",
+  title: "Ustad — Vibe Code till Sehri",
   description:
-    "Paste a Google Cloud Skills Boost lab URL and get an interactive checklist with AI-generated solutions, commands, and progress tracking.",
+    "Need something apart from a game of ludo till sehri? Join us for vibe coding till sehri this Ramzan with GDG Live Pakistan!",
 };
 
 export default function RootLayout({
