@@ -6,11 +6,11 @@
   --font-mono: 'JetBrains Mono', monospace;
 
   /* Black and White Theme */
-  --bg-deep: #000000;
-  --bg-base: #050505;
-  --bg-surface: #0a0a0a;
-  --bg-card: rgba(20, 20, 20, 0.6);
-  --bg-card-hover: rgba(30, 30, 30, 0.8);
+  --bg-deep: #050505;
+  --bg-base: #0a0a0a;
+  --bg-surface: #111111;
+  --bg-card: rgba(20, 20, 20, 0.4);
+  --bg-card-hover: rgba(30, 30, 30, 0.6);
   --bg-input: rgba(10, 10, 10, 0.9);
 
   --border-subtle: rgba(255, 255, 255, 0.1);
@@ -171,13 +171,15 @@ pre {
   background: var(--bg-card);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-lg);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
   transition: all var(--transition-base);
 }
 
 .glass-card:hover {
-  border-color: var(--border-focus);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
 }
 
 /* ===== LANDING PAGE ===== */
@@ -334,7 +336,6 @@ pre {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  overflow: hidden;
 }
 
 .sidebar-header {
@@ -655,21 +656,22 @@ pre {
   width: 100%;
   min-height: 240px;
   background: var(--bg-surface);
-  border: 1px solid var(--border-default);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: var(--radius-lg);
   padding: 24px;
   color: var(--text-primary);
   font-family: var(--font-mono);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   resize: vertical;
   outline: none;
-  transition: border-color var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
   line-height: 1.6;
 }
 
 .paste-textarea:focus {
   border-color: var(--primary);
   background: var(--bg-deep);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
 }
 
 /* ===== LOADING STATE ===== */
@@ -779,17 +781,18 @@ pre {
 
 /* ===== TASK SECTIONS ===== */
 .task-section {
-  margin-bottom: 40px;
+  margin-bottom: 64px;
 }
 
 .task-section-title {
-  font-size: 1.4rem;
-  font-weight: 500;
+  font-size: 1.5rem;
+  font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 24px;
+  margin-bottom: 16px;
   display: flex;
   align-items: center;
   gap: 16px;
+  letter-spacing: -0.01em;
 }
 
 .task-section-number {
@@ -863,34 +866,37 @@ pre {
 
 /* ===== COMMAND BLOCK ===== */
 .command-block {
-  background: var(--bg-deep);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  margin-top: 16px;
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-lg);
+  margin-top: 24px;
   overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.9);
 }
 
 .command-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 16px;
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-subtle);
-  font-size: 0.75rem;
-  color: var(--text-muted);
+  padding: 12px 20px;
+  background: #111111;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
   font-family: var(--font-mono);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .command-copy-btn {
-  background: none;
-  border: none;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  padding: 4px 12px;
   color: var(--text-secondary);
   cursor: pointer;
   font-size: 0.8rem;
-  transition: color var(--transition-fast);
+  transition: all var(--transition-fast);
   font-family: var(--font-mono);
   display: flex;
   align-items: center;
@@ -899,18 +905,23 @@ pre {
 
 .command-copy-btn:hover {
   color: var(--primary);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
 }
 
 .command-copy-btn.copied {
-  color: var(--primary);
+  color: #000000;
+  background: #ffffff;
+  border-color: #ffffff;
 }
 
 .command-code {
-  padding: 16px;
+  padding: 24px;
   font-family: var(--font-mono);
-  font-size: 0.9rem;
-  color: var(--text-primary);
-  line-height: 1.6;
+  font-size: 0.95rem;
+  color: #d4d4d4;
+  line-height: 1.7;
   overflow-x: auto;
   white-space: pre-wrap;
   word-break: break-all;

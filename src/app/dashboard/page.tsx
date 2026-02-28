@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { UserButton, useUser } from "@clerk/nextjs";
+import { useUser, SignOutButton } from "@clerk/nextjs";
 import { LabData, LabHistoryItem, LabTask } from "@/lib/types";
 
 // ─── HELPER: localStorage ─────────────────────────
@@ -199,19 +199,33 @@ export default function DashboardPage() {
                     </div>
                 )}
 
-                <div className="sidebar-footer">
-                    <UserButton afterSignOutUrl="/" />
-                    <span
-                        style={{
-                            fontSize: "0.85rem",
-                            color: "var(--text-secondary)",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
+                <div className="sidebar-footer" style={{ flexDirection: "column", alignItems: "flex-start", gap: "12px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <div style={{
+                            width: "32px", height: "32px", borderRadius: "50%", background: "var(--primary)",
+                            color: "var(--text-inverse)", display: "flex", alignItems: "center", justifyContent: "center",
+                            fontWeight: 600, fontSize: "0.9rem"
+                        }}>
+                            {user?.firstName?.charAt(0) || "U"}
+                        </div>
+                        <span style={{ fontSize: "0.9rem", color: "var(--text-primary)", fontWeight: 500 }}>
+                            {user?.firstName || "User"}
+                        </span>
+                    </div>
+
+                    <SignOutButton>
+                        <button style={{
+                            width: "100%", padding: "8px 12px", background: "transparent",
+                            border: "1px solid var(--border-default)", borderRadius: "var(--radius-md)",
+                            color: "var(--text-secondary)", cursor: "pointer", fontSize: "0.85rem",
+                            textAlign: "center", transition: "all 150ms"
                         }}
-                    >
-                        {user?.firstName || "User"}
-                    </span>
+                            onMouseOver={(e) => { e.currentTarget.style.color = "var(--primary)"; e.currentTarget.style.borderColor = "var(--border-focus)"; }}
+                            onMouseOut={(e) => { e.currentTarget.style.color = "var(--text-secondary)"; e.currentTarget.style.borderColor = "var(--border-default)"; }}
+                        >
+                            Sign Out
+                        </button>
+                    </SignOutButton>
                 </div>
             </aside>
 
@@ -327,7 +341,12 @@ export default function DashboardPage() {
                                                 style={{ border: "none", margin: "0" }}
                                             >
                                                 <div className="command-header">
-                                                    <span>cloud-shell.sh</span>
+                                                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                                        <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#ff5f56" }} />
+                                                        <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#ffbd2e" }} />
+                                                        <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#27c93f" }} />
+                                                        <span style={{ marginLeft: "12px", textTransform: "lowercase" }}>cloud-shell.sh</span>
+                                                    </div>
                                                     <button
                                                         className={`command-copy-btn ${copiedId === task.id ? "copied" : ""}`}
                                                         onClick={() =>
