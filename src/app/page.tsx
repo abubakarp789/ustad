@@ -16,15 +16,15 @@ export default function LandingPage() {
       {/* Navigation */}
       <nav className="landing-nav">
         <div className="landing-logo">
-          <div className="landing-logo-icon">🧪</div>
+          <div className="landing-logo-icon">✨</div>
           Lab Buddy
         </div>
         <div className="landing-nav-actions">
           <SignedOut>
-            <SignInButton mode="modal">
+            <SignInButton mode="modal" fallbackRedirectUrl="/dashboard">
               <button className="btn btn-ghost">Sign In</button>
             </SignInButton>
-            <SignUpButton mode="modal">
+            <SignUpButton mode="modal" fallbackRedirectUrl="/dashboard">
               <button className="btn btn-primary">Get Started</button>
             </SignUpButton>
           </SignedOut>
@@ -39,10 +39,10 @@ export default function LandingPage() {
 
       {/* Hero */}
       <section className="landing-hero">
-        <div className="landing-badge">⚡ Built with AI at GDG Pakistan</div>
+        <div className="landing-badge">Built with AI at GDG Pakistan</div>
         <h1 className="landing-title">
-          Your Cloud Labs,{" "}
-          <span className="landing-title-gradient">Solved & Tracked</span>
+          Your Cloud Labs,<br />
+          <span style={{ opacity: 0.7 }}>Solved & Tracked</span>
         </h1>
         <p className="landing-subtitle">
           Paste any Google Cloud Skills Boost lab URL and get an interactive
@@ -51,12 +51,12 @@ export default function LandingPage() {
         </p>
         <div className="landing-cta-group">
           <SignedOut>
-            <SignUpButton mode="modal">
+            <SignUpButton mode="modal" fallbackRedirectUrl="/dashboard">
               <button className="btn btn-primary">
-                🚀 Start Solving Labs
+                → Start Solving Labs
               </button>
             </SignUpButton>
-            <SignInButton mode="modal">
+            <SignInButton mode="modal" fallbackRedirectUrl="/dashboard">
               <button className="btn btn-secondary">
                 Already have an account?
               </button>
@@ -64,7 +64,7 @@ export default function LandingPage() {
           </SignedOut>
           <SignedIn>
             <Link href="/dashboard" className="btn btn-primary">
-              🚀 Go to Dashboard
+              → Go to Dashboard
             </Link>
           </SignedIn>
         </div>
@@ -73,7 +73,7 @@ export default function LandingPage() {
       {/* Features */}
       <section className="landing-features">
         <div className="glass-card feature-card">
-          <div className="feature-icon feature-icon-blue">🔗</div>
+          <div className="feature-icon">🔗</div>
           <h3 className="feature-title">Paste Lab URL</h3>
           <p className="feature-desc">
             Drop any Google Cloud Skills Boost lab link. We scrape the tasks,
@@ -81,7 +81,7 @@ export default function LandingPage() {
           </p>
         </div>
         <div className="glass-card feature-card">
-          <div className="feature-icon feature-icon-purple">🤖</div>
+          <div className="feature-icon">⚙️</div>
           <h3 className="feature-title">AI-Powered Solutions</h3>
           <p className="feature-desc">
             Gemini AI generates step-by-step solutions with actual gcloud
@@ -89,7 +89,7 @@ export default function LandingPage() {
           </p>
         </div>
         <div className="glass-card feature-card">
-          <div className="feature-icon feature-icon-green">✅</div>
+          <div className="feature-icon">✓</div>
           <h3 className="feature-title">Interactive Checklist</h3>
           <p className="feature-desc">
             Track your progress with checkmarks, copy commands instantly, and

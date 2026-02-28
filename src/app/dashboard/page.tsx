@@ -246,7 +246,7 @@ export default function DashboardPage() {
             <aside className="sidebar">
                 <div className="sidebar-header">
                     <div className="sidebar-brand">
-                        <div className="sidebar-brand-icon">🧪</div>
+                        <div className="sidebar-brand-icon">✨</div>
                         Lab Buddy
                     </div>
                     <button
@@ -338,7 +338,7 @@ export default function DashboardPage() {
                     {/* ─── WELCOME / INPUT STATE ─── */}
                     {!activeLabId && !isLoading && !error && (
                         <div className="welcome">
-                            <div className="welcome-icon">🧪</div>
+                            <div className="welcome-icon">✨</div>
                             <h2 className="welcome-title">
                                 What lab are you working on?
                             </h2>
