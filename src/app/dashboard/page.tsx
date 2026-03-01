@@ -208,8 +208,13 @@ export default function DashboardPage() {
             <aside className="sidebar">
                 <div className="sidebar-header">
                     <div className="sidebar-brand">
-                        <img src="/logo.png" width={24} height={24} alt="Ustad Logo" className="sidebar-brand-icon" style={{ background: 'transparent', borderRadius: '4px' }} />
-                        Ustad
+                        <div className="logo-icon-new" style={{ width: "28px", height: "28px" }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="8 6 14 12 8 18"></polyline>
+                                <line x1="14" y1="18" x2="20" y2="18"></line>
+                            </svg>
+                        </div>
+                        <span className="logo-text-glitch" data-text="USTAD" style={{ fontSize: "0.95rem" }}>USTAD</span>
                     </div>
                     <button
                         className="sidebar-new-btn"
@@ -221,10 +226,13 @@ export default function DashboardPage() {
                 </div>
 
                 {history.length === 0 ? (
-                    <div className="sidebar-empty">
-                        <div className="sidebar-empty-icon">📋</div>
-                        <span>No labs yet</span>
-                        <span>Paste lab instructions to get started</span>
+                    <div className="sidebar-empty animate-enter">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="sidebar-empty-icon" style={{ opacity: 0.3, marginBottom: '8px' }}>
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
+                            <path d="M14 3v5h5M16 13H8M16 17H8M10 9H8" />
+                        </svg>
+                        <span style={{ fontWeight: 500, color: "var(--text-secondary)" }}>No labs yet</span>
+                        <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Paste instructions to begin</span>
                     </div>
                 ) : (
                     <div className="sidebar-labs">
@@ -234,8 +242,11 @@ export default function DashboardPage() {
                                 className={`sidebar-lab-item ${activeLabId === item.id ? "active" : ""}`}
                                 onClick={() => selectLab(item.id)}
                             >
-                                <span className="sidebar-lab-icon">📝</span>
-                                <span className="sidebar-lab-title">{item.title}</span>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="sidebar-lab-icon" style={{ opacity: activeLabId === item.id ? 1 : 0.5 }}>
+                                    <path d="M12 20h9"></path>
+                                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                                </svg>
+                                <span className="sidebar-lab-title" style={{ fontWeight: activeLabId === item.id ? 500 : 400 }}>{item.title}</span>
                             </button>
                         ))}
                     </div>
@@ -277,11 +288,13 @@ export default function DashboardPage() {
                     <div className="main-header">
                         <h2 className="main-header-title">{activeLab.data.labTitle}</h2>
                         <div className="main-header-actions">
-                            <button className="btn btn-ghost" onClick={handleExport}>
-                                📥 Export MD
+                            <button className="btn btn-ghost" onClick={handleExport} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                Export MD
                             </button>
-                            <button className="btn btn-ghost" onClick={newLab}>
-                                ➕ New Lab
+                            <button className="btn btn-primary" onClick={newLab} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px' }}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                New Lab
                             </button>
                         </div>
                     </div>
@@ -290,22 +303,24 @@ export default function DashboardPage() {
                 <div className="main-body">
                     {/* ─── LOADING STATE ─── */}
                     {isLoading && (
-                        <div className="loading-state">
-                            <div className="loading-spinner" />
-                            <p className="loading-text">{loadingStatus}</p>
-                            <p className="loading-subtext">
-                                This may take 15–30 seconds depending on lab complexity...
+                        <div className="loading-state animate-enter">
+                            <div className="loading-spinner" style={{ borderColor: 'rgba(255,255,255,0.1)', borderTopColor: 'var(--primary)', borderWidth: '3px' }} />
+                            <p className="loading-text" style={{ fontSize: '1.1rem', letterSpacing: '0.05em' }}>{loadingStatus}</p>
+                            <p className="loading-subtext" style={{ opacity: 0.6 }}>
+                                Processing lab structure directly from text...
                             </p>
                         </div>
                     )}
 
                     {/* ─── ERROR STATE ─── */}
                     {error && !isLoading && (
-                        <div className="error-state">
-                            <div className="error-icon">⚠️</div>
-                            <h3 className="error-title">Something went wrong</h3>
+                        <div className="error-state animate-enter">
+                            <div className="error-icon" style={{ borderColor: 'rgba(255,100,100,0.3)', color: '#ff6b6b', background: 'rgba(255,0,0,0.05)' }}>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                            </div>
+                            <h3 className="error-title" style={{ color: '#ff6b6b' }}>Processing Failed</h3>
                             <p className="error-message">{error}</p>
-                            <button className="btn btn-primary" onClick={newLab}>
+                            <button className="btn btn-secondary" onClick={newLab} style={{ marginTop: '16px' }}>
                                 Try Again
                             </button>
                         </div>
@@ -313,31 +328,38 @@ export default function DashboardPage() {
 
                     {/* ─── WELCOME / INPUT STATE ─── */}
                     {!activeLabId && !isLoading && !error && (
-                        <div className="welcome">
-                            <div className="welcome-icon">✨</div>
-                            <h2 className="welcome-title">
-                                Paste Your Lab Instructions
+                        <div className="welcome animate-enter">
+                            <div className="welcome-icon" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.02) 100%)', borderColor: 'rgba(255,255,255,0.1)', color: 'var(--primary)' }}>
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                            </div>
+                            <h2 className="welcome-title" style={{ letterSpacing: '-0.03em' }}>
+                                Initialize Execution
                             </h2>
-                            <p className="welcome-subtitle" style={{ marginBottom: "20px" }}>
-                                Hit <strong>Ctrl+A</strong> and <strong>Ctrl+C</strong> on your Google Cloud Skills Boost lab page, and paste the entire text below.
+                            <p className="welcome-subtitle" style={{ marginBottom: "32px", opacity: 0.8 }}>
+                                Paste the contents of your Google Cloud Skills Boost lab to automatically generate executable scripts and checklists.
                             </p>
 
-                            <div className="paste-area" style={{ marginBottom: "20px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                            <div className="glass-panel paste-area" style={{ marginBottom: "20px", display: "flex", flexDirection: "column", padding: '24px', position: 'relative' }}>
+                                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)' }} />
                                 <textarea
                                     className="paste-textarea"
-                                    placeholder="Paste your lab instructions here...&#10;&#10;Example:&#10;Task 1: Create a Cloud Storage bucket&#10;1. Open Cloud Shell&#10;2. Run: gsutil mb gs://my-bucket&#10;..."
-                                    style={{ minHeight: "300px", padding: "16px", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--card-bg)", color: "var(--text)" }}
+                                    placeholder="Task 1. Create a Cloud Storage bucket..."
+                                    style={{ minHeight: "260px", padding: "16px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(0,0,0,0.4)", color: "var(--text-primary)", fontSize: "0.95rem", boxShadow: "inset 0 2px 10px rgba(0,0,0,0.5)" }}
                                     value={pastedContent}
                                     onChange={(e) => setPastedContent(e.target.value)}
                                 />
-                                <button
-                                    className="btn btn-primary"
-                                    onClick={handleSubmit}
-                                    disabled={!pastedContent.trim()}
-                                    style={{ alignSelf: "flex-end", padding: "12px 24px", fontSize: "1rem" }}
-                                >
-                                    🚀 Solve Lab
-                                </button>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
+                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>Parsed directly by Gemini via Serverless Edge</span>
+                                    <button
+                                        className="btn btn-primary"
+                                        onClick={handleSubmit}
+                                        disabled={!pastedContent.trim()}
+                                        style={{ padding: "10px 24px", fontSize: "0.95rem", border: '1px solid rgba(255,255,255,0.2)' }}
+                                    >
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                                        Execute
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -383,21 +405,24 @@ export default function DashboardPage() {
                                                 style={{ border: "none", margin: "0" }}
                                             >
                                                 <div className="command-header">
-                                                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                                        <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#ff5f56" }} />
-                                                        <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#ffbd2e" }} />
-                                                        <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#27c93f" }} />
-                                                        <span style={{ marginLeft: "12px", textTransform: "lowercase" }}>cloud-shell.sh</span>
+                                                    <div className="mac-dots">
+                                                        <div className="mac-dot red" />
+                                                        <div className="mac-dot yellow" />
+                                                        <div className="mac-dot green" />
                                                     </div>
+                                                    <span className="command-title">cloud-shell &mdash; bash</span>
                                                     <button
                                                         className={`command-copy-btn ${copiedId === task.id ? "copied" : ""}`}
                                                         onClick={() =>
                                                             copyCommand(task.script, task.id)
                                                         }
+                                                        style={{ color: copiedId === task.id ? 'var(--text-inverse)' : 'var(--text-muted)' }}
                                                     >
-                                                        {copiedId === task.id
-                                                            ? "✓ Copied!"
-                                                            : "📋 Copy Script"}
+                                                        {copiedId === task.id ? (
+                                                            <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Copied!</>
+                                                        ) : (
+                                                            <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy</>
+                                                        )}
                                                     </button>
                                                 </div>
                                                 <div className="command-code" style={{ whiteSpace: "pre-wrap" }}>
@@ -410,12 +435,14 @@ export default function DashboardPage() {
                             ))}
 
                             {/* Export bar */}
-                            <div className="export-bar">
-                                <button className="btn btn-secondary" onClick={handleExport}>
-                                    📥 Export as Markdown
+                            <div className="export-bar" style={{ marginTop: '80px', paddingBottom: '40px' }}>
+                                <button className="btn btn-secondary" onClick={handleExport} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                    Export Markdown
                                 </button>
-                                <button className="btn btn-ghost" onClick={newLab}>
-                                    ➕ Solve Another Lab
+                                <button className="btn btn-ghost" onClick={newLab} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 8 12 12 16 14"></polyline></svg>
+                                    New Execution
                                 </button>
                             </div>
                         </div>
