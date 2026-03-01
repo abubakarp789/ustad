@@ -1,7 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI, Type } from "@google/genai";
+import { auth } from "@clerk/nextjs/server";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+import { env } from "@/lib/env";
+import { z } from "zod";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
+
+const solveSchema = z.object({
+    pastedContent: z.string().min(1).max(50000),
+    labTitle: z.string().optional(),
+    rawTasks: z.array(z.string()).optional(),
+    codeSnippets: z.array(z.string()).optional(),
+});
+
+const ratelimit = new Ratelimit({
+    redis: new Redis({
+        url: env.UPSTASH_REDIS_REST_URL,
+        token: env.UPSTASH_REDIS_REST_TOKEN,
+    }),
+    limiter: Ratelimit.slidingWindow(10, "60 s"),
+    analytics: true,
+});
 
 const labSolutionSchema = {
     type: Type.OBJECT,
@@ -43,6 +64,16 @@ const labSolutionSchema = {
 
 export async function POST(req: NextRequest) {
     try {
+        const { userId } = await auth();
+        if (!userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const { success } = await ratelimit.limit(userId);
+        if (!success) {
+            return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+        }
+
         let body;
         try {
             body = await req.json();
@@ -52,7 +83,17 @@ export async function POST(req: NextRequest) {
                 { status: 400 }
             );
         }
-        const { labTitle, rawTasks, codeSnippets, pastedContent } = body;
+
+        let validatedBody;
+        try {
+            validatedBody = solveSchema.parse(body);
+        } catch (e) {
+            return NextResponse.json(
+                { error: "Invalid payload structure or size limit exceeded." },
+                { status: 400 }
+            );
+        }
+        const { labTitle, rawTasks, codeSnippets, pastedContent } = validatedBody;
 
         // Build the prompt
         let contextText = "";
@@ -105,7 +146,7 @@ ${contextText}`;
 
         return NextResponse.json(result);
     } catch (error) {
-        console.error("Solve error:", error);
+        console.error("Solve error:", error instanceof Error ? error.message : "Unknown error");
         return NextResponse.json(
             {
                 error:

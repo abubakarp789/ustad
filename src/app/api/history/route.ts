@@ -2,6 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { Lab, Task } from "@prisma/client";
+import { z } from "zod";
+
+const historySchema = z.object({
+    labTitle: z.string().min(1).max(500),
+    labDescription: z.string().max(5000).optional(),
+    pastedContent: z.string().max(50000).optional(),
+    tasks: z.array(z.object({
+        title: z.string().max(500),
+        description: z.string().max(5000),
+        script: z.string().max(50000),
+    })).max(50),
+});
 
 // GET /api/history - Retrieve all labs for the current user
 export async function GET() {
@@ -41,7 +53,7 @@ export async function GET() {
 
         return NextResponse.json(formattedHistory);
     } catch (error) {
-        console.error("Error fetching history:", error);
+        console.error("Error fetching history:", error instanceof Error ? error.message : "Unknown error");
         return NextResponse.json({ error: "Failed to fetch history" }, { status: 500 });
     }
 }
@@ -55,11 +67,15 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { labTitle, labDescription, pastedContent, tasks } = body;
 
-        if (!labTitle || !tasks || !Array.isArray(tasks)) {
-            return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+        let validated;
+        try {
+            validated = historySchema.parse(body);
+        } catch (e) {
+            return NextResponse.json({ error: "Invalid payload parameters" }, { status: 400 });
         }
+
+        const { labTitle, labDescription, pastedContent, tasks } = validated;
 
         const newLab = await prisma.lab.create({
             data: {
@@ -99,7 +115,37 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json(formattedLab);
     } catch (error) {
-        console.error("Error saving history:", error);
+        console.error("Error saving history:", error instanceof Error ? error.message : "Unknown error");
         return NextResponse.json({ error: "Failed to save history" }, { status: 500 });
+    }
+}
+
+export async function DELETE(req: NextRequest) {
+    try {
+        const { userId } = await auth();
+        if (!userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const { searchParams } = new URL(req.url);
+        const id = searchParams.get("id");
+        if (!id) {
+            return NextResponse.json({ error: "Missing id" }, { status: 400 });
+        }
+
+        // CRITICAL: Verify ownership before deleting
+        const lab = await prisma.lab.findFirst({
+            where: { id, userId },
+        });
+
+        if (!lab) {
+            return NextResponse.json({ error: "Not found or unauthorized" }, { status: 404 });
+        }
+
+        await prisma.lab.delete({ where: { id } });
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        console.error("Error deleting history:", error instanceof Error ? error.message : "Unknown error");
+        return NextResponse.json({ error: "Failed to delete history" }, { status: 500 });
     }
 }

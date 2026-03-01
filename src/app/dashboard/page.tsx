@@ -11,7 +11,7 @@ async function fetchHistory(): Promise<LabHistoryItem[]> {
         if (!res.ok) throw new Error("Failed to fetch history");
         return await res.json();
     } catch (error) {
-        console.error(error);
+        // Suppress detailed error logs in client
         return [];
     }
 }
@@ -20,7 +20,7 @@ async function removeHistory(id: string): Promise<void> {
     try {
         await fetch(`/api/history?id=${id}`, { method: "DELETE" });
     } catch (error) {
-        console.error(error);
+        // Suppress detailed error logs in client
     }
 }
 
@@ -143,7 +143,7 @@ export default function DashboardPage() {
                 };
             } catch (saveErr) {
                 // Database save failed (e.g. Supabase paused), but still show results
-                console.warn("Could not save to history (database may be unreachable):", saveErr);
+                console.warn("Could not save to history (database may be unreachable)");
                 newItem = {
                     id: `local-${Date.now()}`,
                     title: solveResult.labTitle || "Pasted Lab",
@@ -162,7 +162,6 @@ export default function DashboardPage() {
             setCompletedSteps([]);
             setPastedContent("");
         } catch (err) {
-            console.error(err);
             setError("Something went wrong. Please try again.");
         } finally {
             setIsLoading(false);
