@@ -1,4 +1,4 @@
-# Ustad — Lab Buddy
+# Ustad
 
 **Master Google Cloud Labs Without the Friction.**
 
@@ -9,6 +9,14 @@ Ustad is an AI-powered tool that converts Google Cloud Skills Boost lab instruct
 ![Clerk](https://img.shields.io/badge/Clerk-Auth-6C47FF)
 ![Prisma](https://img.shields.io/badge/Prisma-7-2D3748)
 ![Gemini](https://img.shields.io/badge/Gemini-AI-4285F4)
+
+## Screenshots
+
+### Landing Page
+![Landing Page](./public/landing_page.png)
+
+### Dashboard
+![Dashboard](./public/dashboard_page.png)
 
 ## Features
 
