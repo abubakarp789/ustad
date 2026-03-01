@@ -27,6 +27,9 @@ export default function LandingPage() {
           <span className="logo-text-glitch" data-text="USTAD">USTAD</span>
         </div>
         <div className="landing-nav-actions">
+          <Link href="https://github.com/abubakarp789/ustad" target="_blank" rel="noopener noreferrer" className="btn btn-icon btn-ghost" title="GitHub Repository">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.2c3-.3 6-1.5 6-6a5.5 5.5 0 0 0-1.5-3.8 5.5 5.5 0 0 0-.1-3.8s-1.2-.4-3.9 1.4a13.3 13.3 0 0 0-7 0c-2.7-1.8-3.9-1.4-3.9-1.4a5.5 5.5 0 0 0-.1 3.8A5.5 5.5 0 0 0 2 13c0 4.5 3 5.7 6 6a4.8 4.8 0 0 0-1 3.2v4"></path></svg>
+          </Link>
           <SignedOut>
             <SignInButton mode="modal" fallbackRedirectUrl="/dashboard">
               <button className="btn btn-ghost">Sign In</button>
@@ -234,10 +237,11 @@ export default function LandingPage() {
           <span className="logo-text-glitch" data-text="USTAD" style={{ fontSize: "1rem" }}>USTAD</span>
         </div>
         <p className="footer-copyright text-sm text-white/50 text-center" style={{ fontSize: "0.85rem", color: "var(--text-secondary)", textAlign: "center" }}>
-          Built for Vibe Code till Sehri
+          Built for Vibe Code till Sehri by <Link href="https://www.linkedin.com/in/abubakar56/" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "underline" }}>Abu Bakar</Link>
         </p>
         <div className="footer-links flex gap-6 text-sm text-white/70" style={{ display: "flex", gap: "24px", fontSize: "0.9rem" }}>
-          <Link href="https://github.com/iam-abubakar" className="hover:text-white transition-colors" style={{ color: "var(--text-secondary)", transition: "color var(--transition-fast)" }}>GitHub</Link>
+          <Link href="https://github.com/abubakarp789/ustad" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors" style={{ color: "var(--text-secondary)", transition: "color var(--transition-fast)" }}>GitHub</Link>
+          <Link href="https://www.linkedin.com/in/abubakar56/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors" style={{ color: "var(--text-secondary)", transition: "color var(--transition-fast)" }}>LinkedIn</Link>
         </div>
       </footer>
     </div>
