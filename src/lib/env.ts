@@ -10,6 +10,8 @@ export const env = {
   GEMINI_API_KEY: requireEnv('GEMINI_API_KEY'),
   DATABASE_URL: requireEnv('DATABASE_URL'),
   DIRECT_URL: process.env.DIRECT_URL,
-  UPSTASH_REDIS_REST_URL: requireEnv('UPSTASH_REDIS_REST_URL'),
-  UPSTASH_REDIS_REST_TOKEN: requireEnv('UPSTASH_REDIS_REST_TOKEN'),
+  // Optional — rate limiting is disabled if not configured
+  UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
+  UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
 };
+

@@ -27,5 +27,10 @@
     "@types/react-dom": "^19",
     "prisma": "^7.4.2",
     "typescript": "^5"
+  },
+  "overrides": {
+    "@hono/node-server": "^1.19.10",
+    "hono": "^4.12.4",
+    "lodash": "^4.17.22"
   }
 }

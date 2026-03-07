@@ -6,6 +6,7 @@ datasource db {
   provider = "postgresql"
 }
 
+
 model Lab {
   id               String   @id @default(uuid())
   userId           String   // Clerk User ID

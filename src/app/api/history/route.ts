@@ -2,25 +2,89 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { Lab, Task } from "@prisma/client";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+import { env } from "@/lib/env";
 import { z } from "zod";
+
+const taskSchema = z.object({
+    title: z.string().min(1).max(500),
+    description: z.string().min(1).max(5000),
+    script: z.string().min(1).max(50000),
+}).strict();
 
 const historySchema = z.object({
     labTitle: z.string().min(1).max(500),
     labDescription: z.string().max(5000).optional(),
     pastedContent: z.string().max(50000).optional(),
-    tasks: z.array(z.object({
-        title: z.string().max(500),
-        description: z.string().max(5000),
-        script: z.string().max(50000),
-    })).max(50),
-});
+    tasks: z.array(taskSchema).min(1).max(50),
+}).strict();
+
+const idSchema = z.string().uuid();
+
+const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL;
+const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+// Rate limiter is optional — only active when Upstash credentials are configured
+const historyWriteRateLimit =
+    UPSTASH_URL && UPSTASH_TOKEN &&
+        !UPSTASH_URL.includes("REPLACE_ME") &&
+        !UPSTASH_TOKEN.includes("REPLACE_ME")
+        ? new Ratelimit({
+            redis: new Redis({ url: UPSTASH_URL, token: UPSTASH_TOKEN }),
+            limiter: Ratelimit.slidingWindow(30, "60 s"),
+            analytics: true,
+        })
+        : null;
+
+
+function jsonNoStore(body: unknown, init: ResponseInit = {}) {
+    const headers = new Headers(init.headers);
+    headers.set("Cache-Control", "no-store, max-age=0");
+    headers.set("Pragma", "no-cache");
+    headers.set("Expires", "0");
+    return NextResponse.json(body, { ...init, headers });
+}
+
+function getRequestOrigin(req: NextRequest): string | null {
+    const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+    if (!host) {
+        return null;
+    }
+
+    const protocol = req.headers.get("x-forwarded-proto")
+        ?? (process.env.NODE_ENV === "development" ? "http" : "https");
+
+    return `${protocol}://${host}`;
+}
+
+function enforceSameOrigin(req: NextRequest): NextResponse | null {
+    const origin = req.headers.get("origin");
+    if (!origin) {
+        return null;
+    }
+
+    const requestOrigin = getRequestOrigin(req);
+    if (!requestOrigin || origin !== requestOrigin) {
+        return jsonNoStore({ error: "Forbidden" }, { status: 403 });
+    }
+
+    return null;
+}
+
+async function enforceWriteRateLimit(userId: string): Promise<boolean> {
+    if (!historyWriteRateLimit) return true; // Rate limiting disabled — allow all
+    const { success } = await historyWriteRateLimit.limit(`history-write:${userId}`);
+    return success;
+}
+
 
 // GET /api/history - Retrieve all labs for the current user
 export async function GET() {
     try {
         const { userId } = await auth();
         if (!userId) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            return jsonNoStore({ error: "Unauthorized" }, { status: 401 });
         }
 
         const labs = await prisma.lab.findMany({
@@ -28,12 +92,11 @@ export async function GET() {
             orderBy: { createdAt: "desc" },
             include: {
                 tasks: {
-                    orderBy: { order: "asc" }
-                }
-            }
+                    orderBy: { order: "asc" },
+                },
+            },
         });
 
-        // Map Prisma DB structure back to frontend expected LabHistoryItem structure
         const formattedHistory = labs.map((lab: Lab & { tasks: Task[] }) => ({
             id: lab.id,
             title: lab.labTitle,
@@ -46,36 +109,48 @@ export async function GET() {
                     id: task.id,
                     title: task.title,
                     description: task.description,
-                    script: task.script
-                }))
-            }
+                    script: task.script,
+                })),
+            },
         }));
 
-        return NextResponse.json(formattedHistory);
+        return jsonNoStore(formattedHistory);
     } catch (error) {
         console.error("Error fetching history:", error instanceof Error ? error.message : "Unknown error");
-        return NextResponse.json({ error: "Failed to fetch history" }, { status: 500 });
+        return jsonNoStore({ error: "Failed to fetch history" }, { status: 500 });
     }
 }
 
 // POST /api/history - Save a newly generated lab
 export async function POST(req: NextRequest) {
     try {
+        const originError = enforceSameOrigin(req);
+        if (originError) {
+            return originError;
+        }
+
         const { userId } = await auth();
         if (!userId) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            return jsonNoStore({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const body = await req.json();
+        if (!(await enforceWriteRateLimit(userId))) {
+            return jsonNoStore({ error: "Rate limit exceeded" }, { status: 429 });
+        }
 
-        let validated;
+        let body;
         try {
-            validated = historySchema.parse(body);
-        } catch (e) {
-            return NextResponse.json({ error: "Invalid payload parameters" }, { status: 400 });
+            body = await req.json();
+        } catch {
+            return jsonNoStore({ error: "Invalid JSON body" }, { status: 400 });
         }
 
-        const { labTitle, labDescription, pastedContent, tasks } = validated;
+        const validated = historySchema.safeParse(body);
+        if (!validated.success) {
+            return jsonNoStore({ error: "Invalid payload parameters" }, { status: 400 });
+        }
+
+        const { labTitle, labDescription, pastedContent, tasks } = validated.data;
 
         const newLab = await prisma.lab.create({
             data: {
@@ -84,18 +159,17 @@ export async function POST(req: NextRequest) {
                 labDescription: labDescription || null,
                 pastedContent: pastedContent || "",
                 tasks: {
-                    create: tasks.map((task: any, index: number) => ({
+                    create: tasks.map((task, index) => ({
                         title: task.title || `Task ${index + 1}`,
                         description: task.description || "",
                         script: task.script || "",
-                        order: index
-                    }))
-                }
+                        order: index,
+                    })),
+                },
             },
-            include: { tasks: true }
+            include: { tasks: true },
         });
 
-        // Return the formatted object so the frontend can immediately inject it into state
         const formattedLab = {
             id: newLab.id,
             title: newLab.labTitle,
@@ -108,44 +182,52 @@ export async function POST(req: NextRequest) {
                     id: task.id,
                     title: task.title,
                     description: task.description,
-                    script: task.script
-                }))
-            }
+                    script: task.script,
+                })),
+            },
         };
 
-        return NextResponse.json(formattedLab);
+        return jsonNoStore(formattedLab);
     } catch (error) {
         console.error("Error saving history:", error instanceof Error ? error.message : "Unknown error");
-        return NextResponse.json({ error: "Failed to save history" }, { status: 500 });
+        return jsonNoStore({ error: "Failed to save history" }, { status: 500 });
     }
 }
 
 export async function DELETE(req: NextRequest) {
     try {
+        const originError = enforceSameOrigin(req);
+        if (originError) {
+            return originError;
+        }
+
         const { userId } = await auth();
         if (!userId) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            return jsonNoStore({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        if (!(await enforceWriteRateLimit(userId))) {
+            return jsonNoStore({ error: "Rate limit exceeded" }, { status: 429 });
         }
 
         const { searchParams } = new URL(req.url);
         const id = searchParams.get("id");
-        if (!id) {
-            return NextResponse.json({ error: "Missing id" }, { status: 400 });
+        if (!id || !idSchema.safeParse(id).success) {
+            return jsonNoStore({ error: "Missing or invalid id" }, { status: 400 });
         }
 
-        // CRITICAL: Verify ownership before deleting
         const lab = await prisma.lab.findFirst({
             where: { id, userId },
         });
 
         if (!lab) {
-            return NextResponse.json({ error: "Not found or unauthorized" }, { status: 404 });
+            return jsonNoStore({ error: "Not found or unauthorized" }, { status: 404 });
         }
 
         await prisma.lab.delete({ where: { id } });
-        return NextResponse.json({ success: true });
+        return jsonNoStore({ success: true });
     } catch (error) {
         console.error("Error deleting history:", error instanceof Error ? error.message : "Unknown error");
-        return NextResponse.json({ error: "Failed to delete history" }, { status: 500 });
+        return jsonNoStore({ error: "Failed to delete history" }, { status: 500 });
     }
 }

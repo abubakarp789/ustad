@@ -1,5 +1,6 @@
 import { SignUp } from "@clerk/nextjs";
 
+// Middleware in middleware.ts already handles redirecting signed-in users away from this page.
 export default function SignUpPage() {
     return (
         <div className="auth-page">
